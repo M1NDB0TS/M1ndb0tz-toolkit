@@ -1,0 +1,92 @@
+---
+job: extension
+config:
+  # this name will be the folder and filename name
+  name: "st3phl0ve-xxx-01"
+  process:
+    - type: 'sd_trainer'
+      # root folder to save training sessions/samples/weights
+      training_folder: "output"
+      # uncomment to see performance stats in the terminal every N steps
+#      performance_log_every: 1000
+      device: cuda:0
+      # if a trigger word is specified, it will be added to captions of training data if it does not already exist
+      # alternatively, in your captions you can add [trigger] and it will be replaced with the trigger word
+#      trigger_word: "p3r5on"
+      network:
+        type: "lora"
+        linear: 16
+        linear_alpha: 16
+      save:
+        dtype: float16 # precision to save
+        save_every: 250 # save every this many steps
+        max_step_saves_to_keep: 4 # how many intermittent saves to keep
+      datasets:
+        # datasets are a folder of images. captions need to be txt files with the same name as the image
+        # for instance image2.jpg and image2.txt. Only jpg, jpeg, and png are supported currently
+        # images will automatically be resized and bucketed into the resolution specified
+        # on windows, escape back slashes with another backslash so
+        # "C:\\path\\to\\images\\folder"
+        - folder_path: "/path/to/images/folder"
+          caption_ext: "txt"
+          caption_dropout_rate: 0.05  # will drop out the caption 5% of time
+          shuffle_tokens: false  # shuffle caption order, split by commas
+          cache_latents_to_disk: true  # leave this true unless you know what you're doing
+          resolution: [ 512, 768, 1024 ]  # flux enjoys multiple resolutions
+      train:
+        batch_size: 1
+        steps: 2000  # total number of steps to train 500 - 4000 is a good range
+        gradient_accumulation_steps: 1
+        train_unet: true
+        train_text_encoder: false  # probably won't work with flux
+        gradient_checkpointing: true  # need the on unless you have a ton of vram
+        noise_scheduler: "flowmatch" # for training only
+        optimizer: "adamw8bit"
+        lr: 1e-4
+        # uncomment this to skip the pre training sample
+#        skip_first_sample: true
+        # uncomment to completely disable sampling
+#        disable_sampling: true
+        # uncomment to use new vell curved weighting. Experimental but may produce better results
+        linear_timesteps: true
+
+        # ema will smooth out learning, but could slow it down. Recommended to leave on.
+        ema_config:
+          use_ema: true
+          ema_decay: 0.99
+
+        # will probably need this if gpu supports it for flux, other dtypes may not work correctly
+        dtype: bf16
+      model:
+        # huggingface model name or path
+        name_or_path: "black-forest-labs/FLUX.1-dev"
+        is_flux: true
+        quantize: true  # run 8bit mixed precision
+#        low_vram: true  # uncomment this if the GPU is connected to your monitors. It will use less vram to quantize, but is slower.
+      sample:
+        sampler: "flowmatch" # must match train.noise_scheduler
+        sample_every: 250 # sample every this many steps
+        width: 1024
+        height: 1024
+        prompts:
+          # you can add [trigger] to the prompts here and it will be replaced with the trigger word
+          - "st3phl0v3 holding a sign naked that says 'I LOVE STRIP!'"\
+          - "st3phl0v3 in sexy latex suit, long white hair, floating hair, ripped clothes, weapons(sword in sheth, gun in holster), doggy style position, bending over, looking back, photorealistic, professional photography, detailed background, vivid colors,"
+          - "st3phl0v3 in sexy latex suit, extra long white hair, sfw, floating hair, ripped clothes, doggy style position, bending over, looking back, holding sword, photorealistic, professional photography, detailed background, weapons in background, vivid colors, 4k, high quality, masterpiece,"
+          - "st3phl0v3 as arabic girl, dark hair, dark skin, sexy pose, squatting, legs spread, lingerie, egyptian pyramid structure in background, 4k, professional photography"
+          - "st3phl0v3 sexy pose, in action, looking at camera, wearing bunny ears, wearing miniskirt, skirt lift, full body view, upskirt, showing white panties, (oversized cropped hoodie:1.5), [(underboob:1.5):0.1], pantyshot, hair floating, in the air, long rainbow hair, tattoos, New York City streets, 4k, professional photography, vivid colors, photorealistic,"
+          - "st3phl0v3 as spanish girl laughing, dark skin, arms up, wearing miniskirt, looking at camera, [(upskirt:1.5):0.1], panties showing, in action shot, long dark hair, hair floating, (oversized cropped hoodie:1),sitting on swing, [(underboob:1.5):0.1], full body view, at playground, night time, kids in background, fall time, vivid colors, masterpiece, 4k, professional photography, professional lighting"
+          - "st3phl0v3 as steampunk inventor, goggles, nude, steampunk theme, steam, mechanical brass items everywhere, holographic, sexy, naked, neon colors, colors:(blues, pinks, oranges), TRON landscape, splattered paint, nipples, nude, colorful, vivid colors, dripping paint, colorful, masterpiece, 3D, Victorian-era inspired with a mechanical twist,"
+          - "a woman with headphones on her head and a bikini top on, with a city skyline in the background, st3phl0v3, cyberpunk, cyberpunk art, retrofuturism"
+          - "a portrait of st3phl0v3 with mermaid tail, tiara, sks as mermaid, topless, underwater, fish scales, poseidon, long hair, sexy, naked, neon colors, colors:(blues, pinks, oranges), splattered paint, nipples, nude, colorful, vivid colors, dripping paint, cyborg, robot, with underwater scene in the background, colorful, masterpiece, 3D, cyberpunk, cyberpunk art"
+          - "a portrait of st3phl0v3 with crown on her head topless on the skyline, sexy, neon colors, pinks, blues, oranges, splattered paint, nipples, nude, colorful, vivid colors, dripping paint, cyborg, robot, with a city skyline in the background, colorful, masterpiece, 3D, cyberpunk, cyberpunk art,'"
+          - "a portrait of st3phl0v3 with indian head-dress on her head topless on the skyline, sexy, marijuana, neon colors, colors: (oranges, pinks, blues), splattered paint, nipples, nude, colorful, vivid colors, dripping paint, cyborg, robot, with a city skyline in the background, colorful, masterpiece, 3D, cyberpunk, cyberpunk art,"
+        neg: ""  # not used on flux
+        seed: 42
+        walk_seed: true
+        guidance_scale: 4
+        sample_steps: 20
+# you can add any additional meta info here. [name] is replaced with config name at top
+meta:
+  name: "[name]"
+  version: '1.0'
